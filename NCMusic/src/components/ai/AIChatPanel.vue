@@ -348,7 +348,6 @@ const playSong = (id) => {
       </button>
     </div>
   </div>
-
   <!-- 悬浮触发按钮 -->
   <div class="ai-trigger-btn" v-if="!aiStore.isOpen" @click="aiStore.togglePanel">
     <span class="icon">&#10024;</span>
