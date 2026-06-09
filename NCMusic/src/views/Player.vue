@@ -181,7 +181,7 @@ onMounted(() => {
                 <p
                   v-for="(line, index) in lyrics"
                   :key="index"
-                  :class="{ 'lyric-line--heighlight': index === 0 }"
+                  :class="{ 'lyric-line--highlight': index === 0 }"
                   class="lyrics-line"
                 >
                   {{ line }}
