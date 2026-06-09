@@ -1,7 +1,7 @@
 <script setup>
 import { useRoute } from "vue-router";
 import api from "@/api";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 const route = useRoute();
 
 const songId = computed(() => route.query.id);
@@ -16,6 +16,8 @@ const songCover = ref("https://via.placeholder.com/260x260.png?text=Cover");
 
 // 歌词
 const lyrics = ref([]);
+// 每行歌词的DOM引用
+const lyricLineRefs = ref([]);
 
 //音乐播放地址
 const audioUrl = ref("");
@@ -61,24 +63,33 @@ const fetchLyric = async (id) => {
     const res = await api.get("/lyric", { params: { id } });
     const raw = res.lrc?.lyric || "";
     lyrics.value = parseLyric(raw);
-    // console.log(lyrics.value)
+    if (lyrics.value.length === 0) {
+      lyrics.value = [{ time: 0, text: "暂无歌词" }];
+    }
   } catch (error) {
-    lyrics.value = [];
+    lyrics.value = [{ time: 0, text: "获取歌词失败" }];
     console.log("获取歌词失败", error);
   }
 };
 
-//解析歌词
+//解析歌词，保留时间戳 { time, text }
 const parseLyric = (raw = "") => {
   return raw
     .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line)
     .map((line) => {
-      //去掉时间标签
-      const text = line.replace(/^\[[^\]]*]/g, "").trim();
-      return text || line;
-    });
+      const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
+      if (match) {
+        const minutes = parseInt(match[1], 10);
+        const seconds = parseInt(match[2], 10);
+        const milliseconds = parseInt(match[3].padEnd(3, "0"), 10);
+        return {
+          time: minutes * 60000 + seconds * 1000 + milliseconds,
+          text: match[4].trim(),
+        };
+      }
+      return null;
+    })
+    .filter((item) => item !== null);
 };
 
 //获取音乐播放地址
@@ -141,15 +152,51 @@ const handleProgressClick = (e) => {
   const rect = bar.getBoundingClientRect();
   const ratio = (e.clientX - rect.left) / rect.width;
   const audio = audioRef.value
-  if(!audio) return 
+  if(!audio) return
   const newTime = ratio * duration.value;
   audio.currentTime = newTime;
   currentTime.value = newTime;
 }
 
+// 二分查找：根据当前播放时间定位歌词行
+const currentLineIndex = computed(() => {
+  const targetTime = currentTime.value * 1000;
+  const lyricsArray = lyrics.value;
+
+  let left = 0;
+  let right = lyricsArray.length - 1;
+  let result = -1;
+
+  while (left <= right) {
+    const mid = (left + right) >> 1;
+    if (lyricsArray[mid].time <= targetTime) {
+      result = mid;
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+
+  return result;
+});
+
+// 收集每行歌词的DOM引用
+const setLyricLineRef = (el, index) => {
+  lyricLineRefs.value[index] = el;
+};
+
+// 监听高亮行变化，自动滚动到当前歌词
+watch(currentLineIndex, async (idx, prev) => {
+  if (idx < 0 || idx === prev) return;
+  await nextTick();
+  const el = lyricLineRefs.value[idx];
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
 
 
 onMounted(() => {
+  lyricLineRefs.value = [];
   fetchLyric(songId.value);
   fetchSongDetail(songId.value);
   fetchSongUrl(songId.value);
@@ -181,10 +228,11 @@ onMounted(() => {
                 <p
                   v-for="(line, index) in lyrics"
                   :key="index"
-                  :class="{ 'lyric-line--highlight': index === 0 }"
+                  :ref="(el) => setLyricLineRef(el, index)"
+                  :class="{ 'lyrics-line--highlight': index === currentLineIndex }"
                   class="lyrics-line"
                 >
-                  {{ line }}
+                  {{ line.text }}
                 </p>
               </template>
               <p v-else class="lyrics-line">暂无歌词</p>
