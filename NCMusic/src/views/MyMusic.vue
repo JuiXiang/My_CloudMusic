@@ -5,6 +5,8 @@ import { useUserStore } from "@/stores/user";
 import { useRouter } from "vue-router";
 // @ts-ignore
 import api from "@/api";
+// @ts-ignore
+import { cropImageUrl, IMG_SIZE } from "@/utils/image";
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -64,7 +66,7 @@ onMounted(() => {
                   @click="handleOpenPlaylist(item.id)"
                 >
                   <div class="cover">
-                    <img :src="item.cover" alt="歌单封面">        
+                    <img :src="cropImageUrl(item.cover, IMG_SIZE.MY_PLAYLIST_COVER.w, IMG_SIZE.MY_PLAYLIST_COVER.h)" alt="歌单封面" loading="lazy">
                   </div>
                   <div class="info">
                     <p class="name">{{ item.name }}</p>
