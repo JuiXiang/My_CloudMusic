@@ -257,11 +257,16 @@ const handleSend = async () => {
   }
 }
 
+// 卡片点击动画状态
+const animatingCardId = ref(null)
+
 const playSong = (id) => {
-  router.push({
-    name: 'player',
-    query: { id }
-  })
+  if (animatingCardId.value) return
+  animatingCardId.value = id
+  setTimeout(() => {
+    router.push({ name: 'player', query: { id } })
+    animatingCardId.value = null
+  }, 300)
 }
 </script>
 
@@ -313,6 +318,7 @@ const playSong = (id) => {
           <div class="rec-songs" v-if="msg.songs && msg.songs.length > 0">
             <div
               class="rec-song-card"
+              :class="{ 'card-leaving': animatingCardId === song.id }"
               v-for="song in msg.songs"
               :key="song.id"
               @click="playSong(song.id)"
@@ -564,6 +570,19 @@ const playSong = (id) => {
   background: #f0f0f0;
 }
 
+.rec-song-card.card-leaving {
+  transform: scale(0.95);
+  background: #fff;
+  border-color: #ff416c;
+  box-shadow: 0 4px 16px rgba(255, 65, 108, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rec-song-card.card-leaving .play-icon {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
 .song-info {
   display: flex;
   align-items: baseline;
@@ -597,7 +616,7 @@ const playSong = (id) => {
   color: #ff416c;
   font-size: 14px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
 }
 
 .rec-song-card:hover .play-icon {

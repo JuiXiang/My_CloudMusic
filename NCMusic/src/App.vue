@@ -25,7 +25,7 @@ const handleSearch = () => {
 
 // 处理用户头像点击事件
 const handleUserAvatarClick = () => {
-  
+
 }
 
 // 处理退出登录事件
@@ -74,7 +74,11 @@ const handleLogout = () => {
       </div>
     </header>
     <main class="main-view">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition name="page-fade" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
     <AIChatPanel />
   </div>
@@ -266,5 +270,24 @@ const handleLogout = () => {
 
 .main-view {
   flex: 1;
+}
+
+/* 页面切换过渡动画 */
+.page-fade-enter-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.page-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>
