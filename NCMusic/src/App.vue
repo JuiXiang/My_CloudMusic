@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink, RouterView ,useRouter} from "vue-router";
+import { RouterLink, RouterView ,useRouter, useRoute} from "vue-router";
 import { ref } from "vue"
 // @ts-ignore
 import { useUserStore } from "@/stores/user";
@@ -9,6 +9,7 @@ import AIChatPanel from "@/components/ai/AIChatPanel.vue";
 import { cropImageUrl, IMG_SIZE } from "@/utils/image";
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 //搜索内容
@@ -76,7 +77,7 @@ const handleLogout = () => {
     <main class="main-view">
       <RouterView v-slot="{ Component }">
         <Transition name="page-fade" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="route.fullPath" />
         </Transition>
       </RouterView>
     </main>

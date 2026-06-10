@@ -202,6 +202,14 @@ onMounted(() => {
   fetchSongDetail(songId.value);
   fetchSongUrl(songId.value);
 });
+
+watch(songId, (newId) => {
+  if (!newId) return;
+  lyricLineRefs.value = [];
+  fetchLyric(newId);
+  fetchSongDetail(newId);
+  fetchSongUrl(newId);
+});
 </script>
 <template>
   <div class="player-page">
