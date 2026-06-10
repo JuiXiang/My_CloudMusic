@@ -169,7 +169,6 @@ const handlePlaylistClick = (id: number) => {
       </div>
     </div>
   </div>
-  <div></div>
 </template>
 <style scoped>
 .hall-wrapper {
