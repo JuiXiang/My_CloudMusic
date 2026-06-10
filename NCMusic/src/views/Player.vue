@@ -2,6 +2,7 @@
 import { useRoute } from "vue-router";
 import api from "@/api";
 import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { cropImageUrl, IMG_SIZE } from "@/utils/image";
 const route = useRoute();
 
 const songId = computed(() => route.query.id);
@@ -210,7 +211,7 @@ onMounted(() => {
         <div class="player-left">
           <div class="cover-wrap">
             <div class="cover-disc">
-              <img :src="songCover" class="cover-img" alt="歌曲封面" />
+              <img :src="cropImageUrl(songCover, IMG_SIZE.PLAYER_COVER.w, IMG_SIZE.PLAYER_COVER.h)" class="cover-img" alt="歌曲封面" loading="lazy" />
             </div>
           </div>
           <div class="song-meta">

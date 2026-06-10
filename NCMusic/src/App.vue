@@ -5,6 +5,8 @@ import { ref } from "vue"
 import { useUserStore } from "@/stores/user";
 // @ts-ignore
 import AIChatPanel from "@/components/ai/AIChatPanel.vue";
+// @ts-ignore
+import { cropImageUrl, IMG_SIZE } from "@/utils/image";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -57,7 +59,7 @@ const handleLogout = () => {
           <RouterLink v-if="!userStore.isLoggedIn" to="/login" class="login-btn">登录</RouterLink>
           <div v-else class="user-menu">
             <button class="user-avatar" @click="handleUserAvatarClick">
-              <img :src="userStore.user?.avatar" alt="用户头像" />
+              <img :src="cropImageUrl(userStore.user?.avatar, IMG_SIZE.USER_AVATAR.w, IMG_SIZE.USER_AVATAR.h)" alt="用户头像" loading="lazy" />
             </button>
             <div class="user-dropdown">
               <div class="user-dropdown-header">

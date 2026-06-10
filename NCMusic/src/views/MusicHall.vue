@@ -3,6 +3,7 @@
 import api from "@/api/index.js";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { cropImageUrl, IMG_SIZE } from "@/utils/image";
 
 const router = useRouter();
 //推荐的歌单
@@ -115,7 +116,7 @@ const handlePlaylistClick = (id: number) => {
           @click="handlePlaylistClick(item.id)"
         >
           <div class="cover-wrapper">
-            <img :src="item.cover" :alt="item.title" />
+            <img :src="cropImageUrl(item.cover, IMG_SIZE.PLAYLIST_COVER.w, IMG_SIZE.PLAYLIST_COVER.h)" :alt="item.title" loading="lazy" />
           </div>
           <div class="info">
             <p class="title">{{ item.title }}</p>
@@ -128,7 +129,7 @@ const handlePlaylistClick = (id: number) => {
       <ul class="song-list">
         <li class="song-item" v-for="song in newSongs" :key="song.id">
           <div class="song-cover">
-            <img :src="song.cover" :alt="song.name" />
+            <img :src="cropImageUrl(song.cover, IMG_SIZE.NEW_SONG_COVER.w, IMG_SIZE.NEW_SONG_COVER.h)" :alt="song.name" loading="lazy" />
           </div>
           <div class="song-info">
             <p class="song-name">{{ song.name }}</p>
@@ -151,7 +152,7 @@ const handlePlaylistClick = (id: number) => {
             <ul class="singer-list">
               <li v-for="singer in slide" :key="singer.id" class="singer-item">
                 <div class="singer-avatar">
-                  <img :src="singer.avatar" :alt="singer.name" />
+                  <img :src="cropImageUrl(singer.avatar, IMG_SIZE.SINGER_AVATAR.w, IMG_SIZE.SINGER_AVATAR.h)" :alt="singer.name" loading="lazy" />
                 </div>
                 <span class="singer-name">
                   <p class="name">{{ singer.rank }} {{ singer.name }}</p>

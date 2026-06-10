@@ -1,17 +1,18 @@
-<script setup>
-import { onMounted, ref, computed } from "vue";
+<script setup lang="ts">
+import { onMounted, ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
+import VirtualList from "@/components/VirtualList.vue";
 
 const route = useRoute();
 const router = useRouter();
 
 const playlistId = computed(() => route.query.id);
 const playlistName = ref("");
-const tracks = ref([]);
+const tracks = ref<any[]>([]);
 const loading = ref(false);
 
-const formatDuration = (ms) => {
+const formatDuration = (ms: number) => {
   if (!ms) return "00:00";
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
@@ -29,11 +30,11 @@ const fetchPlaylistDetail = async () => {
     if (detail) {
       playlistName.value = detail.name || "歌单";
       tracks.value =
-        detail.tracks?.map((item) => ({
+        detail.tracks?.map((item: any) => ({
           id: item.id,
           name: item.name,
           artist: (item.ar || item.artist.name || [])
-            .map((art) => art.name)
+            .map((art: any) => art.name)
             .join("/"),
           durationMs: item.duration || item.dt || 0,
           album: (item.al || item.album)?.name || "",
@@ -46,14 +47,15 @@ const fetchPlaylistDetail = async () => {
   }
 };
 
-// 跳转到播放页面
-const handlePlaySong = (id) => {
-  if (!id) return;
-  router.push({
-    name: "player",
-    query: { id },
-  });
+const handlePlaySong = (track: any, _index: number) => {
+  if (!track?.id) return;
+  router.push({ name: "player", query: { id: track.id } });
 };
+
+// 监听路由 id 变化，支持歌单间切换
+watch(playlistId, () => {
+  fetchPlaylistDetail();
+});
 
 onMounted(() => {
   fetchPlaylistDetail();
@@ -66,26 +68,28 @@ onMounted(() => {
       <h2 class="title">{{ playlistName }}</h2>
       <div v-if="loading" class="tip">歌曲加载中...</div>
       <div v-else-if="tracks.length === 0" class="tip">暂无歌曲</div>
-      <ul class="track-list">
-        <li
-          v-for="(track, index) in tracks"
-          :key="track.id"
-          class="track-item"
-          @click="handlePlaySong(track.id)"
-        >
-          <span class="track-index">{{ index + 1 }}</span>
-          <div class="track-main">
-            <span class="track-name">{{ track.name }}</span>
-            <span class="track-artist">{{ track.artist }}</span>
+      <VirtualList
+        v-else
+        :items="tracks"
+        :item-height="42"
+        :buffer="10"
+        class="track-list"
+        @item-click="handlePlaySong"
+      >
+        <template #default="{ item, index }">
+          <div class="track-item">
+            <span class="track-index">{{ index + 1 }}</span>
+            <div class="track-main">
+              <span class="track-name">{{ item.name }}</span>
+              <span class="track-artist">{{ item.artist }}</span>
+            </div>
+            <div class="track-extra">
+              <span class="track-album">{{ item.album }}</span>
+              <span class="track-duration">{{ formatDuration(item.durationMs) }}</span>
+            </div>
           </div>
-          <div class="track-extra">
-            <span class="track-album">{{ track.album }}</span>
-            <span class="track-duration">{{
-              formatDuration(track.durationMs)
-            }}</span>
-          </div>
-        </li>
-      </ul>
+        </template>
+      </VirtualList>
     </div>
   </div>
 </template>
@@ -116,24 +120,21 @@ onMounted(() => {
 
 .track-list {
   margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  height: calc(100vh - 200px);
 }
 
 .track-item {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 0 16px;
+  height: 100%;
+  box-sizing: border-box;
   border-bottom: 1px solid #f2f2f2;
   cursor: pointer;
   font-size: 13px;
-}
-
-.track-item:last-of-type {
-  border-bottom: none;
 }
 
 .track-item:hover {
