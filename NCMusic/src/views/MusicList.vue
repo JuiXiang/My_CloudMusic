@@ -1,95 +1,92 @@
-<script setup lang="ts">
-import { onMounted, ref, computed, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import api from "@/api";
-import VirtualList from "@/components/VirtualList.vue";
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import api from '@/api'
+import { useVirtualList } from '@/hooks/useVirtualList'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
 
-const playlistId = computed(() => route.query.id);
-const playlistName = ref("");
-const tracks = ref<any[]>([]);
-const loading = ref(false);
+const playlistId = computed(() => route.query.id)
+const playlistName = ref('')
+const tracks = ref([])
+const loading = ref(false)
 
-const formatDuration = (ms: number) => {
-  if (!ms) return "00:00";
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = (totalSec % 60).toString().padStart(2, "0");
-  return `${min}:${sec}`;
-};
+// 虚拟列表配置，设置每项固定高度 56px
+const { containerRef, totalHeight, visibleList, offsetY, handleScroll } = useVirtualList(tracks, { itemHeight: 56, buffer: 10 })
 
-const fetchPlaylistDetail = async () => {
-  const id = playlistId.value;
-  if (!id) return;
-  loading.value = true;
+const formatDuration = (ms) => {
+  if (!ms) return '00:00'
+  const totalSec = Math.floor(ms / 1000)
+  const min = Math.floor(totalSec / 60)
+  const sec = (totalSec % 60).toString().padStart(2, '0')
+  return `${min}:${sec}`
+}
+
+const fetchPlaylistDetail = async (id) => {
+  if (!id) {
+    playlistName.value = ''
+    tracks.value = []
+    return
+  }
+  loading.value = true
   try {
-    const res = await api.get("/playlist/detail", { params: { id } });
-    const detail = res.playlist;
+    const res = await api.get('/playlist/detail', { params: { id } })
+    const detail = res.playlist
     if (detail) {
-      playlistName.value = detail.name || "歌单";
+      playlistName.value = detail.name || '歌单'
       tracks.value =
-        detail.tracks?.map((item: any) => ({
+        detail.tracks?.map((item) => ({
           id: item.id,
           name: item.name,
           artist: (item.ar || item.artist.name || [])
-            .map((art: any) => art.name)
-            .join("/"),
+            .map((art) => art.name)
+            .join('/'),
           durationMs: item.duration || item.dt || 0,
-          album: (item.al || item.album)?.name || "",
-        })) || [];
+          album: (item.al || item.album)?.name || '',
+        })) || []
     }
   } catch (error) {
-    console.log("获取歌单详情失败", error);
+    console.log('获取歌单详情失败', error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-const handlePlaySong = (track: any, _index: number) => {
-  if (!track?.id) return;
-  router.push({ name: "player", query: { id: track.id } });
-};
+const handlePlaySong = (id) => {
+  if (!id) return
+  router.push({ name: 'player', query: { id } })
+}
 
-// 监听路由 id 变化，支持歌单间切换
-watch(playlistId, () => {
-  fetchPlaylistDetail();
-});
-
-onMounted(() => {
-  fetchPlaylistDetail();
-});
+watch(playlistId, (id) => {
+  fetchPlaylistDetail(id)
+}, { immediate: true })
 </script>
 
 <template>
   <div class="musiclist-page">
     <div class="musiclist-inner">
       <h2 class="title">{{ playlistName }}</h2>
-      <div v-if="loading" class="tip">歌曲加载中...</div>
-      <div v-else-if="tracks.length === 0" class="tip">暂无歌曲</div>
-      <VirtualList
-        v-else
-        :items="tracks"
-        :item-height="42"
-        :buffer="10"
-        class="track-list"
-        @item-click="handlePlaySong"
-      >
-        <template #default="{ item, index }">
-          <div class="track-item">
-            <span class="track-index">{{ index + 1 }}</span>
+      <div v-if="loading" class="tip">正在加载歌单详情...</div>
+      <div v-else-if="tracks.length === 0" class="tip">暂无歌曲数据</div>
+      <div v-else class="virtual-list-container" ref="containerRef" @scroll="handleScroll">
+        <div class="virtual-list-phantom" :style="{ height: totalHeight + 'px' }"></div>
+        <ul class="track-list" :style="{ transform: `translateY(${offsetY}px)` }">
+          <li v-for="track in visibleList" :key="track.id" class="track-item"
+            @click="handlePlaySong(track.id)"
+          >
+            <span class="track-index">{{ track._index + 1 }}</span>
             <div class="track-main">
-              <span class="track-name">{{ item.name }}</span>
-              <span class="track-artist">{{ item.artist }}</span>
+              <span class="track-name">{{ track.name }}</span>
+              <span class="track-artist">{{ track.artist }}</span>
             </div>
             <div class="track-extra">
-              <span class="track-album">{{ item.album }}</span>
-              <span class="track-duration">{{ formatDuration(item.durationMs) }}</span>
+              <span class="track-album">{{ track.album }}</span>
+              <span class="track-duration">{{ formatDuration(track.durationMs) }}</span>
             </div>
-          </div>
-        </template>
-      </VirtualList>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
@@ -118,23 +115,46 @@ onMounted(() => {
   color: #777;
 }
 
-.track-list {
-  margin: 12px 0 0;
+.virtual-list-container {
+  position: relative;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  height: calc(100vh - 200px);
+}
+
+.virtual-list-phantom {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  z-index: -1;
+}
+
+.track-list {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .track-item {
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  height: 100%;
-  box-sizing: border-box;
+  padding: 8px 16px;
   border-bottom: 1px solid #f2f2f2;
   cursor: pointer;
   font-size: 13px;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+.track-item:last-of-type {
+  border-bottom: none;
 }
 
 .track-item:hover {
